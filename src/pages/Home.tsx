@@ -6,69 +6,76 @@ import {
   IonTitle,
   IonContent,
   IonButton,
-  IonCard,
-  IonCardHeader,
-  IonCardTitle,
-  IonCardContent,
-  IonImg,
-  IonIcon,
+  IonButtons,
 } from '@ionic/react';
-import { calendarOutline, restaurantOutline, locationOutline, starOutline } from 'ionicons/icons';
+import Footer from '../components/Footer';
+import { useHistory } from 'react-router-dom';
+import './Home.css';
 
 const Home: React.FC = () => {
+  const history = useHistory();
+
+  // Redirigir si ya está autenticado
+  React.useEffect(() => {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      history.replace('/app/reservations');
+    }
+  }, [history]);
+
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar color="primary">
-          <IonTitle>Redia - Tu Restaurante</IonTitle>
+      <IonHeader className="ion-no-border">
+        <IonToolbar style={{ '--background': '#ffffff', padding: '0.5rem 1rem' }}>
+          <IonTitle slot="start" style={{ color: 'var(--ion-color-primary)', fontWeight: 'bold', fontSize: '1.4rem', letterSpacing: '1px', margin: 0 }}>
+            REDIA
+          </IonTitle>
+          <IonButtons slot="end" style={{ gap: '0.5rem' }}>
+            <IonButton color="primary" onClick={() => history.push('/auth', { mode: 'login' })} style={{ fontWeight: '600', textTransform: 'none', fontSize: '0.9rem' }}>
+              Iniciar sesión
+            </IonButton>
+            <IonButton 
+              color="primary" 
+              fill="solid" 
+              onClick={() => history.push('/auth', { mode: 'register' })} 
+              style={{ borderRadius: '20px', padding: '0 0.8rem', textTransform: 'none', fontWeight: 'bold', fontSize: '0.9rem' }}
+            >
+              Registrarse
+            </IonButton>
+          </IonButtons>
         </IonToolbar>
       </IonHeader>
-      <IonContent fullscreen style={{ '--background': 'var(--ion-background-color)' }}>
-        <IonHeader collapse="condense">
-          <IonToolbar color="primary">
-            <IonTitle size="large">Redia</IonTitle>
-          </IonToolbar>
-        </IonHeader>
 
-        <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
-          <IonImg
-            src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80"
-            alt="Interior del restaurante"
-            style={{ borderRadius: '15px', marginBottom: '1.5rem', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}
-          />
-          <h1 style={{ color: 'var(--ion-color-primary)', fontWeight: 'bold' }}>Bienvenido a Redia</h1>
-          <p style={{ color: 'var(--ion-text-color)', fontSize: '1.1rem', marginBottom: '2rem' }}>
-            La mejor experiencia culinaria a tu alcance. Disfruta de nuestros platillos exclusivos
-            en un ambiente inolvidable.
-          </p>
-          
-          <IonButton expand="block" color="secondary" size="large" routerLink="/auth" style={{ fontWeight: 'bold' }}>
-            <IonIcon icon={calendarOutline} slot="start" />
-            ¡Reserva Ya!
-          </IonButton>
+      <IonContent fullscreen>
+        <div className="hero-section">
+          <div className="hero-overlay"></div>
+          <div className="hero-content">
+            <h1>Bienvenidos a <span style={{ color: '#B65C7C' }}>Redia</span></h1>
+            <p>
+              Vive una experiencia gastronómica inolvidable. Sabores auténticos, ambiente
+              acogedor y un servicio excepcional que te hará sentir como en casa.
+            </p>
+            <IonButton shape="round" color="secondary" size="large" onClick={() => history.push('/auth', { mode: 'login' })} style={{ marginTop: '1.5rem', fontWeight: 'bold' }}>
+              Reservar ahora
+            </IonButton>
+          </div>
         </div>
 
-        <IonCard>
-          <IonCardHeader>
-            <IonCardTitle>¿Qué ofrecemos?</IonCardTitle>
-          </IonCardHeader>
-          <IonCardContent>
-            <IonButton fill="clear" color="primary">
-              <IonIcon slot="start" icon={restaurantOutline} />
-              Chef Internacional
-            </IonButton>
-            <br />
-            <IonButton fill="clear" color="secondary">
-              <IonIcon slot="start" icon={locationOutline} />
-              Excelente Ubicación
-            </IonButton>
-            <br />
-            <IonButton fill="clear" color="primary">
-              <IonIcon slot="start" icon={starOutline} />
-              Servicio de 5 Estrellas
-            </IonButton>
-          </IonCardContent>
-        </IonCard>
+        <div className="info-cards-section">
+          <div className="info-card">
+            <h3 style={{ color: 'var(--ion-color-secondary)', fontWeight: 'bold' }}>Horarios de atención</h3>
+            <p>Lunes a Viernes: 8:00 am - 10:00 pm</p>
+            <p>Sábados: 8:00 am - 4:00 pm</p>
+            <p>Domingos y Festivos: Cerrado</p>
+          </div>
+          <div className="info-card">
+            <h3 style={{ color: 'var(--ion-color-secondary)', fontWeight: 'bold' }}>Nuestra Ubicación</h3>
+            <p>Carrera 23 #36-48</p>
+            <p>Visítanos y disfruta de un momento especial.</p>
+          </div>
+        </div>
+
+        <Footer />
       </IonContent>
     </IonPage>
   );

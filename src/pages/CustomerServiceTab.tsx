@@ -19,6 +19,7 @@ import {
 } from '@ionic/react';
 import { chatbubblesOutline, callOutline, mailOutline, personCircleOutline, sendOutline } from 'ionicons/icons';
 import ProfileModal from '../components/ProfileModal';
+import Footer from '../components/Footer';
 
 const CustomerServiceTab: React.FC = () => {
   const [showProfile, setShowProfile] = useState(false);
@@ -60,7 +61,7 @@ const CustomerServiceTab: React.FC = () => {
           </IonCardContent>
         </IonCard>
 
-        <IonCard style={{ margin: '0', borderRadius: '12px' }}>
+        <IonCard style={{ margin: '0 0 3rem 0', borderRadius: '12px' }}>
           <IonCardHeader>
             <IonCardTitle style={{ color: 'var(--ion-color-primary)' }}>Déjanos un mensaje</IonCardTitle>
           </IonCardHeader>
@@ -81,6 +82,8 @@ const CustomerServiceTab: React.FC = () => {
             </IonButton>
           </IonCardContent>
         </IonCard>
+
+        <Footer />
 
         <IonModal isOpen={showProfile} onDidDismiss={() => setShowProfile(false)}>
           <ProfileModal onDismiss={() => setShowProfile(false)} />

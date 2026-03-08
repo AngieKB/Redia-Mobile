@@ -22,7 +22,7 @@ const TabsContainer: React.FC = () => {
         <Route exact path="/app/reservations" component={ReservationsTab} />
         <Route exact path="/app/support" component={CustomerServiceTab} />
         <Route exact path="/app">
-          <Redirect to="/app/reserve" />
+          <Redirect to="/app/reservations" />
         </Route>
       </IonRouterOutlet>
       
