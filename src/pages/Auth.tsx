@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   IonPage,
   IonHeader,
@@ -11,12 +11,13 @@ import {
   IonToast,
   IonLoading,
   IonInputPasswordToggle,
+  useIonViewWillEnter,
 } from '@ionic/react';
 import { arrowBackOutline, eyeOutline, eyeOffOutline } from 'ionicons/icons';
 import { useHistory, useLocation } from 'react-router-dom';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { GoogleLogin } from '@react-oauth/google';
-import { login, register, setTokens, forgotPassword, resetPassword, googleLogin, completeProfile } from '../services/authService';
+import { login, register, setTokens, forgotPassword, resetPassword, googleLogin, completeProfile, removeTokens } from '../services/authService';
 import './Auth.css';
 
 const Auth: React.FC = () => {
@@ -42,6 +43,21 @@ const Auth: React.FC = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Limpiar estados al entrar a la vista (importante tras cerrar sesión)
+  useIonViewWillEnter(() => {
+    setEmail('');
+    setPassword('');
+    setConfirmPassword('');
+    setNombre('');
+    setTelefono('');
+    setVerificationCode('');
+    setFotoUrl(null);
+    setRecaptchaToken(null);
+    setErrors({});
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+  });
 
   const validateEmail = (val: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
   const validatePassword = (val: string) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(val);
