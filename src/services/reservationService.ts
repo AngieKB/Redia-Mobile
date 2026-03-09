@@ -5,6 +5,18 @@ const getHeaders = () => ({
   'Authorization': `Bearer ${getAccessToken()}`,
 });
 
+const parseBackendError = (errorStr: string): string => {
+  try {
+    const errorObj = JSON.parse(errorStr);
+    if (errorObj.content && Array.isArray(errorObj.content)) {
+      return errorObj.content.map((err: any) => `${err.message}`).join('. ');
+    }
+    return errorObj.message || errorStr;
+  } catch (e) {
+    return errorStr;
+  }
+};
+
 export const getMyReservations = async () => {
   const response = await fetch(`${API_BASE_URL}/reservations/my`, {
     headers: getHeaders(),
@@ -22,7 +34,8 @@ export const createReservation = async (reservationData: any) => {
     body: JSON.stringify(reservationData),
   });
   if (!response.ok) {
-    throw new Error('Error al crear tu reserva');
+    const errorData = await response.text();
+    throw new Error(parseBackendError(errorData) || 'Error al crear tu reserva');
   }
   return response.json();
 };

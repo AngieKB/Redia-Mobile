@@ -13,13 +13,15 @@ import {
 } from '@ionic/react';
 import { arrowBackOutline } from 'ionicons/icons';
 import { useHistory, useLocation } from 'react-router-dom';
-import { login, register, setTokens, forgotPassword, resetPassword } from '../services/authService';
+import ReCAPTCHA from 'react-google-recaptcha';
+import { GoogleLogin } from '@react-oauth/google';
+import { login, register, setTokens, forgotPassword, resetPassword, googleLogin, completeProfile } from '../services/authService';
 import './Auth.css';
 
 const Auth: React.FC = () => {
   const history = useHistory();
   const location = useLocation<{ mode?: 'login' | 'register' | 'forgot' }>();
-  const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'reset'>(location.state?.mode || 'login');
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'reset' | 'complete'>(location.state?.mode || 'login');
 
   // Form states
   const [email, setEmail] = useState('');
@@ -29,6 +31,7 @@ const Auth: React.FC = () => {
   const [telefono, setTelefono] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [fotoUrl, setFotoUrl] = useState<File | null>(null);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   
   // Validation states
   const [errors, setErrors] = useState<any>({});
@@ -50,7 +53,12 @@ const Auth: React.FC = () => {
     setTelefono('');
     setVerificationCode('');
     setFotoUrl(null);
+    setRecaptchaToken(null);
     setErrors({});
+  };
+
+  const onCaptchaChange = (token: string | null) => {
+    setRecaptchaToken(token);
   };
 
   const handleLogin = async () => {
@@ -58,11 +66,16 @@ const Auth: React.FC = () => {
       setToastMessage('Por favor completa todos los campos.');
       return;
     }
+
+    if (!recaptchaToken) {
+      setToastMessage('Por favor completa el reCAPTCHA.');
+      return;
+    }
     
     setLoading(true);
     try {
-      const data = await login(email, password);
-      setTokens(data.accessToken, data.refreshToken);
+      const data = await login(email, password, recaptchaToken);
+      setTokens(data.accessToken, data.refreshToken, data);
       setToastMessage('¡Bienvenido a Redia!');
       history.push('/app/reservations');
     } catch (error: any) {
@@ -86,6 +99,11 @@ const Auth: React.FC = () => {
       setToastMessage('Revisa los campos con errores');
       return;
     }
+
+    if (!recaptchaToken) {
+      setToastMessage('Por favor completa el reCAPTCHA.');
+      return;
+    }
     
     setLoading(true);
     try {
@@ -99,9 +117,63 @@ const Auth: React.FC = () => {
         formData.append('fotoUrl', fotoUrl);
       }
       
-      const resMsg = await register(formData);
-      setToastMessage(resMsg || 'Registro exitoso. Se envió un correo de bienvenida.');
-      setMode('login'); 
+      const resMsg = await register(formData, recaptchaToken);
+      setToastMessage('¡Registro exitoso! Iniciando sesión...');
+      
+      // Auto-login después de registrar exitosamente
+      const loginData = await login(email, password, recaptchaToken);
+      setTokens(loginData.accessToken, loginData.refreshToken, loginData);
+      
+      history.push('/app/reservations');
+    } catch (error: any) {
+      setToastMessage(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (response: any) => {
+    setLoading(true);
+    try {
+      const data = await googleLogin(response.credential);
+      setTokens(data.accessToken, data.refreshToken, data);
+      
+      // Si el teléfono está vacío, el usuario es nuevo por Google y debe completar perfil
+      if (!data.telefono || data.telefono === '') {
+        setMode('complete');
+        setToastMessage('Por favor completa tu perfil para continuar.');
+      } else {
+        setToastMessage(`¡Bienvenido ${data.nombre}!`);
+        history.push('/app/reservations');
+      }
+    } catch (error: any) {
+      setToastMessage(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCompleteProfile = async () => {
+    const newErrors: any = {};
+    if (!validatePhone(telefono)) newErrors.telefono = 'El teléfono debe tener exactamente 10 dígitos';
+    if (!validatePassword(password)) newErrors.password = 'La contraseña debe incluir Mayúscula, Minúscula y un Número';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      setToastMessage('Revisa los campos con errores');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('telefono', telefono);
+      formData.append('password', password);
+      if (fotoUrl) formData.append('fotoUrl', fotoUrl);
+
+      await completeProfile(formData);
+      setToastMessage('Perfil completado con éxito.');
+      history.push('/app/reservations');
     } catch (error: any) {
       setToastMessage(error.message);
     } finally {
@@ -185,6 +257,25 @@ const Auth: React.FC = () => {
                   onIonInput={e => setPassword(e.detail.value!)} 
                 />
 
+                <div className="captcha-container" style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0' }}>
+                  <ReCAPTCHA
+                    sitekey="6Lcg2IMsAAAAABsnQqPhTVEBU0I2lg0Yxd39UaVH"
+                    onChange={onCaptchaChange}
+                  />
+                </div>
+
+                <div className="google-login-container" style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                  <GoogleLogin 
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => setToastMessage('Error al iniciar sesión con Google')}
+                    useOneTap
+                    theme="filled_blue"
+                    shape="pill"
+                    text="continue_with"
+                    width="280px"
+                  />
+                </div>
+
                 <IonButton expand="block" color="primary" onClick={handleLogin} className="auth-button">
                   Iniciar sesión
                 </IonButton>
@@ -233,9 +324,10 @@ const Auth: React.FC = () => {
                   placeholder="Teléfono"
                   value={telefono} 
                   onIonInput={e => {
-                    setTelefono(e.detail.value!);
-                    if (validatePhone(e.detail.value!)) setErrors({...errors, telefono: ''});
-                    else setErrors({...errors, telefono: 'Mínimo 10 dígitos'});
+                    const val = e.detail.value!.replace(/\D/g, '').slice(0, 10);
+                    setTelefono(val);
+                    if (val.length === 10) setErrors({...errors, telefono: ''});
+                    else setErrors({...errors, telefono: 'El teléfono debe tener 10 dígitos'});
                   }} 
                 />
                 {errors.telefono && <span className="error-text">{errors.telefono}</span>}
@@ -248,7 +340,7 @@ const Auth: React.FC = () => {
                   onIonInput={e => {
                     setPassword(e.detail.value!);
                     if (validatePassword(e.detail.value!)) setErrors({...errors, password: ''});
-                    else setErrors({...errors, password: 'Min 8 carac, Mayús, Minús y Num'});
+                    else setErrors({...errors, password: 'Mínimo 8 caracteres, Mayúscula, Minúscula y Número'});
                   }} 
                 />
                 {errors.password && <span className="error-text">{errors.password}</span>}
@@ -266,8 +358,81 @@ const Auth: React.FC = () => {
                 />
                 {errors.confirmPassword && <span className="error-text">{errors.confirmPassword}</span>}
 
+                <div className="captcha-container" style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0' }}>
+                  <ReCAPTCHA
+                    sitekey="6Lcg2IMsAAAAABsnQqPhTVEBU0I2lg0Yxd39UaVH"
+                    onChange={onCaptchaChange}
+                  />
+                </div>
+
                 <IonButton expand="block" color="primary" onClick={handleRegister} className="auth-button">
                   Registrarse
+                </IonButton>
+
+                <div style={{ display: 'flex', alignItems: 'center', margin: '1.5rem 0' }}>
+                  <div style={{ flex: 1, height: '1px', background: '#e0e0e0' }}></div>
+                  <span style={{ margin: '0 10px', color: '#999', fontSize: '0.8rem' }}>O REGÍSTRATE CON</span>
+                  <div style={{ flex: 1, height: '1px', background: '#e0e0e0' }}></div>
+                </div>
+
+                <div className="google-login-container" style={{ display: 'flex', justifyContent: 'center' }}>
+                  <GoogleLogin 
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => setToastMessage('Error al registrarse con Google')}
+                    theme="outline"
+                    shape="pill"
+                    text="signup_with"
+                    width="280px"
+                  />
+                </div>
+              </div>
+            )}
+
+            {mode === 'complete' && (
+              <div className="complete-form">
+                <p style={{ textAlign: 'center', marginBottom: '1.5rem', color: '#666', fontSize: '0.9rem' }}>
+                  Casi terminamos. Necesitamos algunos datos extra para tu cuenta.
+                </p>
+                
+                <IonInput 
+                  className={`custom-input ${errors.telefono ? 'input-error' : ''}`}
+                  type="tel" 
+                  placeholder="Teléfono móvil"
+                  value={telefono} 
+                  onIonInput={e => {
+                    const val = e.detail.value!.replace(/\D/g, '').slice(0, 10);
+                    setTelefono(val);
+                    if (val.length === 10) setErrors({...errors, telefono: ''});
+                    else setErrors({...errors, telefono: 'El teléfono debe tener 10 dígitos'});
+                  }} 
+                />
+                {errors.telefono && <span className="error-text">{errors.telefono}</span>}
+
+                <IonInput 
+                  className={`custom-input ${errors.password ? 'input-error' : ''}`}
+                  type="password" 
+                  placeholder="Crea una contraseña" 
+                  value={password} 
+                  onIonInput={e => {
+                    setPassword(e.detail.value!);
+                    if (validatePassword(e.detail.value!)) setErrors({...errors, password: ''});
+                    else setErrors({...errors, password: 'Mínimo 8 caracteres, Mayúscula, Minúscula y Número'});
+                  }} 
+                />
+                {errors.password && <span className="error-text">{errors.password}</span>}
+
+                <div className="file-input-container">
+                  <label className="file-input-label">Foto de perfil (opcional)</label>
+                  <input 
+                    type="file" 
+                    className="file-input" 
+                    onChange={e => setFotoUrl(e.target.files ? e.target.files[0] : null)}
+                    accept="image/*"
+                  />
+                </div>
+
+                <IonButton expand="block" color="primary" onClick={handleCompleteProfile} className="auth-button">
+                  Finalizar Registro
                 </IonButton>
               </div>
             )}
@@ -335,6 +500,14 @@ const Auth: React.FC = () => {
             {mode === 'register' && (
               <a className="footer-link" onClick={() => toggleMode('login')}>
                 ¿Ya tienes cuenta? <span>Iniciar sesión</span>
+              </a>
+            )}
+
+            {mode === 'complete' && (
+              <a className="footer-link" onClick={() => {
+                setMode('login');
+              }}>
+                Cancelar y <span>Volver</span>
               </a>
             )}
 

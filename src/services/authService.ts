@@ -1,8 +1,11 @@
 export const API_BASE_URL = 'http://localhost:8080/api';
 
-export const setTokens = (accessToken: string, refreshToken: string) => {
+export const setTokens = (accessToken: string, refreshToken: string, userData?: any) => {
   localStorage.setItem('accessToken', accessToken);
   localStorage.setItem('refreshToken', refreshToken);
+  if (userData) {
+    localStorage.setItem('user', JSON.stringify(userData));
+  }
 };
 
 export const getAccessToken = () => localStorage.getItem('accessToken');
@@ -11,6 +14,12 @@ export const getRefreshToken = () => localStorage.getItem('refreshToken');
 export const removeTokens = () => {
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
+  localStorage.removeItem('user');
+};
+
+export const getUser = () => {
+  const user = localStorage.getItem('user');
+  return user ? JSON.parse(user) : null;
 };
 
 // Helper to get authorization headers
@@ -35,11 +44,11 @@ const parseBackendError = (errorStr: string): string => {
   }
 };
 
-export const login = async (email: string, password: string) => {
+export const login = async (email: string, password: string, recaptchaToken: string) => {
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, recaptchaToken }),
   });
   if (!response.ok) {
     const errorData = await response.text();
@@ -48,7 +57,8 @@ export const login = async (email: string, password: string) => {
   return response.json(); // DEVUELVE AuthResponseDTO
 };
 
-export const register = async (formData: FormData) => {
+export const register = async (formData: FormData, recaptchaToken: string) => {
+  formData.append('recaptchaToken', recaptchaToken);
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',
     body: formData,
@@ -103,4 +113,32 @@ export const resetPassword = async (email: string, verificationCode: string, new
     throw new Error(errorData || 'Error restableciendo contraseña');
   }
   return response.text();
+};
+
+export const googleLogin = async (token: string) => {
+  const response = await fetch(`${API_BASE_URL}/auth/google`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  });
+  if (!response.ok) {
+    const errorData = await response.text();
+    throw new Error(parseBackendError(errorData) || 'Error en inicio de sesión con Google');
+  }
+  return response.json(); // DEVUELVE AuthResponseDTO
+};
+
+export const completeProfile = async (formData: FormData) => {
+  const response = await fetch(`${API_BASE_URL}/auth/complete-profile`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${getAccessToken()}`,
+    },
+    body: formData,
+  });
+  if (!response.ok) {
+    const errorData = await response.text();
+    throw new Error(parseBackendError(errorData) || 'Error completando el perfil');
+  }
+  return response.json();
 };
