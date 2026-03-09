@@ -10,8 +10,9 @@ import {
   IonIcon,
   IonToast,
   IonLoading,
+  IonInputPasswordToggle,
 } from '@ionic/react';
-import { arrowBackOutline } from 'ionicons/icons';
+import { arrowBackOutline, eyeOutline, eyeOffOutline } from 'ionicons/icons';
 import { useHistory, useLocation } from 'react-router-dom';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { GoogleLogin } from '@react-oauth/google';
@@ -39,6 +40,8 @@ const Auth: React.FC = () => {
   // UI states
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const validateEmail = (val: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
   const validatePassword = (val: string) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(val);
@@ -249,13 +252,23 @@ const Auth: React.FC = () => {
                   onIonInput={e => setEmail(e.detail.value!)} 
                 />
                 
-                <IonInput 
-                  className="custom-input"
-                  type="password" 
-                  placeholder="Contraseña" 
-                  value={password} 
-                  onIonInput={e => setPassword(e.detail.value!)} 
-                />
+                <div className="password-input-wrapper" style={{ position: 'relative' }}>
+                  <IonInput 
+                    className="custom-input"
+                    type={showPassword ? 'text' : 'password'} 
+                    placeholder="Contraseña" 
+                    value={password} 
+                    onIonInput={e => setPassword(e.detail.value!)} 
+                  />
+                  <IonButton 
+                    fill="clear" 
+                    className="password-toggle-btn"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ position: 'absolute', right: '5px', top: '5px', zIndex: 10, '--padding-start': '8px', '--padding-end': '8px' }}
+                  >
+                    <IonIcon slot="icon-only" icon={showPassword ? eyeOffOutline : eyeOutline} color="medium" />
+                  </IonButton>
+                </div>
 
                 <div className="captcha-container" style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0' }}>
                   <ReCAPTCHA
@@ -332,30 +345,50 @@ const Auth: React.FC = () => {
                 />
                 {errors.telefono && <span className="error-text">{errors.telefono}</span>}
                 
-                <IonInput 
-                  className={`custom-input ${errors.password ? 'input-error' : ''}`}
-                  type="password" 
-                  placeholder="Contraseña" 
-                  value={password} 
-                  onIonInput={e => {
-                    setPassword(e.detail.value!);
-                    if (validatePassword(e.detail.value!)) setErrors({...errors, password: ''});
-                    else setErrors({...errors, password: 'Mínimo 8 caracteres, Mayúscula, Minúscula y Número'});
-                  }} 
-                />
+                <div className="password-input-wrapper" style={{ position: 'relative' }}>
+                  <IonInput 
+                    className={`custom-input ${errors.password ? 'input-error' : ''}`}
+                    type={showPassword ? 'text' : 'password'} 
+                    placeholder="Contraseña" 
+                    value={password} 
+                    onIonInput={e => {
+                      setPassword(e.detail.value!);
+                      if (validatePassword(e.detail.value!)) setErrors({...errors, password: ''});
+                      else setErrors({...errors, password: 'Mínimo 8 caracteres, Mayúscula, Minúscula y Número'});
+                    }} 
+                  />
+                  <IonButton 
+                    fill="clear" 
+                    className="password-toggle-btn"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ position: 'absolute', right: '5px', top: '5px', zIndex: 10, '--padding-start': '8px', '--padding-end': '8px' }}
+                  >
+                    <IonIcon slot="icon-only" icon={showPassword ? eyeOffOutline : eyeOutline} color="medium" />
+                  </IonButton>
+                </div>
                 {errors.password && <span className="error-text">{errors.password}</span>}
 
-                <IonInput 
-                  className={`custom-input ${errors.confirmPassword ? 'input-error' : ''}`}
-                  type="password" 
-                  placeholder="Confirmar contraseña" 
-                  value={confirmPassword} 
-                  onIonInput={e => {
-                    setConfirmPassword(e.detail.value!);
-                    if (e.detail.value === password) setErrors({...errors, confirmPassword: ''});
-                    else setErrors({...errors, confirmPassword: 'No coinciden'});
-                  }} 
-                />
+                <div className="password-input-wrapper" style={{ position: 'relative' }}>
+                  <IonInput 
+                    className={`custom-input ${errors.confirmPassword ? 'input-error' : ''}`}
+                    type={showConfirmPassword ? 'text' : 'password'} 
+                    placeholder="Confirmar contraseña" 
+                    value={confirmPassword} 
+                    onIonInput={e => {
+                      setConfirmPassword(e.detail.value!);
+                      if (e.detail.value === password) setErrors({...errors, confirmPassword: ''});
+                      else setErrors({...errors, confirmPassword: 'No coinciden'});
+                    }} 
+                  />
+                  <IonButton 
+                    fill="clear" 
+                    className="password-toggle-btn"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    style={{ position: 'absolute', right: '5px', top: '5px', zIndex: 10, '--padding-start': '8px', '--padding-end': '8px' }}
+                  >
+                    <IonIcon slot="icon-only" icon={showConfirmPassword ? eyeOffOutline : eyeOutline} color="medium" />
+                  </IonButton>
+                </div>
                 {errors.confirmPassword && <span className="error-text">{errors.confirmPassword}</span>}
 
                 <div className="captcha-container" style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0' }}>
@@ -408,17 +441,27 @@ const Auth: React.FC = () => {
                 />
                 {errors.telefono && <span className="error-text">{errors.telefono}</span>}
 
-                <IonInput 
-                  className={`custom-input ${errors.password ? 'input-error' : ''}`}
-                  type="password" 
-                  placeholder="Crea una contraseña" 
-                  value={password} 
-                  onIonInput={e => {
-                    setPassword(e.detail.value!);
-                    if (validatePassword(e.detail.value!)) setErrors({...errors, password: ''});
-                    else setErrors({...errors, password: 'Mínimo 8 caracteres, Mayúscula, Minúscula y Número'});
-                  }} 
-                />
+                <div className="password-input-wrapper" style={{ position: 'relative' }}>
+                  <IonInput 
+                    className={`custom-input ${errors.password ? 'input-error' : ''}`}
+                    type={showPassword ? 'text' : 'password'} 
+                    placeholder="Crea una contraseña" 
+                    value={password} 
+                    onIonInput={e => {
+                      setPassword(e.detail.value!);
+                      if (validatePassword(e.detail.value!)) setErrors({...errors, password: ''});
+                      else setErrors({...errors, password: 'Mínimo 8 caracteres, Mayúscula, Minúscula y Número'});
+                    }} 
+                  />
+                  <IonButton 
+                    fill="clear" 
+                    className="password-toggle-btn"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ position: 'absolute', right: '5px', top: '5px', zIndex: 10, '--padding-start': '8px', '--padding-end': '8px' }}
+                  >
+                    <IonIcon slot="icon-only" icon={showPassword ? eyeOffOutline : eyeOutline} color="medium" />
+                  </IonButton>
+                </div>
                 {errors.password && <span className="error-text">{errors.password}</span>}
 
                 <div className="file-input-container">
@@ -466,20 +509,40 @@ const Auth: React.FC = () => {
                   value={verificationCode} 
                   onIonInput={e => setVerificationCode(e.detail.value!)} 
                 />
-                <IonInput 
-                  className="custom-input"
-                  type="password" 
-                  placeholder="Nueva contraseña" 
-                  value={password} 
-                  onIonInput={e => setPassword(e.detail.value!)} 
-                />
-                <IonInput 
-                  className="custom-input"
-                  type="password" 
-                  placeholder="Confirmar nueva contraseña" 
-                  value={confirmPassword} 
-                  onIonInput={e => setConfirmPassword(e.detail.value!)} 
-                />
+                <div className="password-input-wrapper" style={{ position: 'relative' }}>
+                  <IonInput 
+                    className="custom-input"
+                    type={showPassword ? 'text' : 'password'} 
+                    placeholder="Nueva contraseña" 
+                    value={password} 
+                    onIonInput={e => setPassword(e.detail.value!)} 
+                  />
+                  <IonButton 
+                    fill="clear" 
+                    className="password-toggle-btn"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ position: 'absolute', right: '5px', top: '5px', zIndex: 10, '--padding-start': '8px', '--padding-end': '8px' }}
+                  >
+                    <IonIcon slot="icon-only" icon={showPassword ? eyeOffOutline : eyeOutline} color="medium" />
+                  </IonButton>
+                </div>
+                <div className="password-input-wrapper" style={{ position: 'relative' }}>
+                  <IonInput 
+                    className="custom-input"
+                    type={showConfirmPassword ? 'text' : 'password'} 
+                    placeholder="Confirmar nueva contraseña" 
+                    value={confirmPassword} 
+                    onIonInput={e => setConfirmPassword(e.detail.value!)} 
+                  />
+                  <IonButton 
+                    fill="clear" 
+                    className="password-toggle-btn"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    style={{ position: 'absolute', right: '5px', top: '5px', zIndex: 10, '--padding-start': '8px', '--padding-end': '8px' }}
+                  >
+                    <IonIcon slot="icon-only" icon={showConfirmPassword ? eyeOffOutline : eyeOutline} color="medium" />
+                  </IonButton>
+                </div>
                 <IonButton expand="block" color="primary" onClick={handleResetPassword} className="auth-button">
                   Restablecer Contraseña
                 </IonButton>
